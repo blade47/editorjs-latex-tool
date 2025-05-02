@@ -42,38 +42,61 @@ fill="#000000" stroke="none">
   constructor({ data }) {
     this.data = data || {};
     this.data.equations = this.data.equations || [''];
+    this.data.multilineEquations = this.data.multilineEquations ?? false;
+    this.state = { ...this.data };
     this.wrapper = undefined;
-    this.equationWrappers = [];
+    this.toggleEquationOverlay = this.toggleEquationOverlay.bind(this);
+    this.saveEquationState = this.saveEquationState.bind(this);
   }
 
   render() {
     this.wrapper = document.createElement('div');
+    this.wrapper.classList.add('wrapper');
 
     this.output = document.createElement('div');
     this.output.id = 'output-latex-tool';
     this.wrapper.appendChild(this.output);
+    this.output.onclick = this.saveEquationState;
 
-    const addButton = document.createElement('button');
-    addButton.innerText = 'Add Equation';
-    addButton.classList.add('add-equation-button-latex-tool');
-    addButton.addEventListener('click', (e) => this.addEquation(e));
-    this.wrapper.appendChild(addButton);
+    this.equationOverlay = document.createElement('div');
+    this.equationOverlay.classList.add('equation-overlay', 'equation-overlay--hidden');
+    this.wrapper.appendChild(this.equationOverlay);
+
+    const multilineEquations = document.createElement('input');
+    multilineEquations.type = 'checkbox';
+    multilineEquations.id = 'multiline-equations';
+
+    multilineEquations.checked = this.state.multilineEquations;
+    multilineEquations.onchange = (e) => {
+      this.state.multilineEquations = e.target.checked;
+      this.renderLatex();
+    };
+
+    this.equationOverlay.appendChild(multilineEquations);
+
+    const label = document.createElement('label');
+    label.setAttribute('for', 'multiline-equations');
+    label.innerText = 'Multi line equations';
+    this.equationOverlay.appendChild(label);
 
     this.equationContainer = document.createElement('div');
-    this.wrapper.appendChild(this.equationContainer);
+    this.equationOverlay.appendChild(this.equationContainer);
 
-    this.data.equations.forEach((equation, index) => {
-      const eqWrapper = this.createEquationWrapper(equation, index);
-      this.equationContainer.appendChild(eqWrapper);
-      this.equationWrappers.push(eqWrapper);
-    });
+    const eqWrapper = this.createEquationWrapper(this.state.equations.join('\n'));
+    this.equationContainer.appendChild(eqWrapper);
 
     this.renderLatex();
 
     return this.wrapper;
   }
 
-  createEquationWrapper(equation, index) {
+  toggleEquationOverlay(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.equationOverlay.classList.toggle('equation-overlay--hidden');
+  }
+
+  createEquationWrapper(equation) {
     const eqWrapper = document.createElement('div');
     eqWrapper.classList.add('equation-wrapper-latex-tool');
 
@@ -81,63 +104,43 @@ fill="#000000" stroke="none">
     textarea.placeholder = 'Write LaTeX code here...';
     textarea.value = equation;
     textarea.classList.add('equation-textarea-latex-tool');
-    textarea.dataset.index = index;
-    textarea.addEventListener('input', (event) => {
-      this.data.equations[event.target.dataset.index] = event.target.value;
+    textarea.oninput = (event) => {
+      this.state.equations = event.target.value.trim().split('\n');
       this.renderLatex();
-    });
+    };
+    textarea.onkeydown = (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        this.saveEquationState(event);
+      }
+    };
 
-    const removeButton = document.createElement('button');
-    removeButton.innerText = 'Remove';
-    removeButton.classList.add('remove-equation-button-latex-tool');
-    removeButton.dataset.index = index;
-    removeButton.addEventListener('click', (event) => {
-      this.removeEquation(event.target.dataset.index);
-    });
+    const buttonsWrapper = document.createElement('div');
+    buttonsWrapper.classList.add('button-wrapper');
+    const doneButton = document.createElement('button');
+    doneButton.innerText = 'Done ↵';
+    doneButton.classList.add('done-button');
+    doneButton.onclick = this.saveEquationState;
+
+    buttonsWrapper.appendChild(doneButton);
 
     eqWrapper.appendChild(textarea);
-    eqWrapper.appendChild(removeButton);
+    eqWrapper.appendChild(buttonsWrapper);
 
     return eqWrapper;
   }
 
-  addEquation(e) {
-    e.preventDefault();
-
-    this.data.equations.push('');
-    const newIndex = this.data.equations.length - 1;
-    const newEqWrapper = this.createEquationWrapper('', newIndex);
-    this.equationContainer.appendChild(newEqWrapper);
-    this.equationWrappers.push(newEqWrapper);
-    this.updateEquationWrappersIndices();
-    this.renderLatex();
-  }
-
-  removeEquation(index) {
-    this.data.equations.splice(index, 1);
-    this.equationWrappers.forEach((wrapper) => wrapper.remove());
-    this.equationWrappers = [];
-    this.equationContainer.innerHTML = '';
-    this.data.equations.forEach((equation, index) => {
-      const eqWrapper = this.createEquationWrapper(equation, index);
-      this.equationContainer.appendChild(eqWrapper);
-      this.equationWrappers.push(eqWrapper);
-    });
-    this.updateEquationWrappersIndices();
-    this.renderLatex();
-  }
-
-  updateEquationWrappersIndices() {
-    this.equationWrappers.forEach((wrapper, index) => {
-      const textarea = wrapper.querySelector('textarea');
-      const removeButton = wrapper.querySelector('button.remove-equation-button-latex-tool');
-      textarea.dataset.index = index;
-      removeButton.dataset.index = index;
-    });
+  saveEquationState(e) {
+    this.toggleEquationOverlay(e);
+    this.data = { ...this.state };
   }
 
   renderLatex() {
-    const equations = this.data.equations.map((eq) => eq.trim()).filter((eq) => eq.length > 0);
+    const filteredEquations = this.state.equations
+      .map((eq) => eq.trim())
+      .filter((eq) => eq.length > 0);
+    const equations = this.state.multilineEquations
+      ? filteredEquations
+      : [filteredEquations.join(' ')];
     if (equations.length === 0) {
       this.output.textContent = ''; // Clear the output if there are no equations
       return;
@@ -158,7 +161,7 @@ fill="#000000" stroke="none">
 
   save(blockContent) {
     return {
-      equations: this.data.equations,
+      ...this.data,
     };
   }
 }

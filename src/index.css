@@ -1,54 +1,26 @@
-.add-equation-button-latex-tool {
-  margin: 10px 0;
-  padding: 10px 15px;
-  font-size: 14px;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  background-color: #28a745;
-  color: white;
-}
-
-.add-equation-button-latex-tool:hover {
-  background-color: #218838;
-}
-
 .equation-wrapper-latex-tool {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 10px;
+  margin-top: 10px;
 }
 
 .equation-textarea-latex-tool {
   width: 100%;
-  height: 20px;
-  margin-right: 10px;
+  height: fit-content;
+  background-color: inherit;
+  margin-top: 10px;
   padding: 10px;
   font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-  resize: vertical;
+  border: none;
+  resize: none;
+  color: #dd4a68;
+  field-sizing: content;
 }
 
 .equation-textarea-latex-tool:focus {
   outline: none;
-  border-color: #66afe9;
-  box-shadow: 0 0 8px rgba(102, 175, 233, 0.6);
-}
-
-.remove-equation-button-latex-tool {
-  padding: 5px 10px;
-  font-size: 14px;
-  cursor: pointer;
-  border: none;
-  border-radius: 4px;
-  background-color: #dc3545;
-  color: white;
-}
-
-.remove-equation-button-latex-tool:hover {
-  background-color: #c82333;
+  box-shadow: none;
 }
 
 #output-latex-tool {
@@ -57,4 +29,46 @@
   border: 1px solid #ccc;
   border-radius: 4px;
   background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.wrapper {
+  position: relative;
+}
+
+.equation-overlay {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  height: auto;
+  width: 100%;
+  padding: 2%;
+  background-color: #f7f7f5;
+  z-index: 1;
+  word-break: break-word;
+  border-radius: 10px;
+}
+.equation-overlay--hidden {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.button-wrapper {
+  padding: 10px;
+}
+
+.done-button {
+  padding: 10px 15px;
+  font-size: 14px;
+  border: none;
+  border-radius: 6px;
+  background-color: #28a745;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: fit-content;
+  white-space: nowrap;
+}
+.done-button:hover {
+  background-color: #218838;
 }
