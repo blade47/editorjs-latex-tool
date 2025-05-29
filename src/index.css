@@ -1,11 +1,11 @@
-.equation-wrapper-latex-tool {
+.latex-equation-wrapper-latex-tool {
   display: flex;
   align-items: flex-start;
   margin-bottom: 10px;
   margin-top: 10px;
 }
 
-.equation-textarea-latex-tool {
+.latex-equation-textarea-latex-tool {
   width: 100%;
   height: fit-content;
   background-color: inherit;
@@ -18,7 +18,7 @@
   field-sizing: content;
 }
 
-.equation-textarea-latex-tool:focus {
+.latex-equation-textarea-latex-tool:focus {
   outline: none;
   box-shadow: none;
 }
@@ -32,11 +32,11 @@
   cursor: pointer;
 }
 
-.wrapper {
+.latex-wrapper {
   position: relative;
 }
 
-.equation-overlay {
+.latex-equation-overlay {
   position: absolute;
   top: calc(100% + 10px);
   left: 0;
@@ -47,28 +47,32 @@
   z-index: 1;
   word-break: break-word;
   border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
-.equation-overlay--hidden {
+.latex-equation-overlay--hidden {
   pointer-events: none;
   visibility: hidden;
 }
 
-.button-wrapper {
+.latex-button-wrapper {
   padding: 10px;
 }
 
-.done-button {
+.latex-done-button {
   padding: 10px 15px;
   font-size: 14px;
   border: none;
   border-radius: 6px;
-  background-color: #28a745;
-  color: white;
   font-weight: 700;
   cursor: pointer;
   min-width: fit-content;
   white-space: nowrap;
 }
-.done-button:hover {
+.latex-done-button:hover {
   background-color: #218838;
+}
+
+.latex-done-button-color {
+  background-color: #28a745;
+  color: white;
 }

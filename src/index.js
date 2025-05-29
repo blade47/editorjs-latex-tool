@@ -51,7 +51,7 @@ fill="#000000" stroke="none">
 
   render() {
     this.wrapper = document.createElement('div');
-    this.wrapper.classList.add('wrapper');
+    this.wrapper.classList.add('latex-wrapper');
 
     this.output = document.createElement('div');
     this.output.id = 'output-latex-tool';
@@ -59,12 +59,12 @@ fill="#000000" stroke="none">
     this.output.onclick = this.saveEquationState;
 
     this.equationOverlay = document.createElement('div');
-    this.equationOverlay.classList.add('equation-overlay', 'equation-overlay--hidden');
+    this.equationOverlay.classList.add('latex-equation-overlay', 'latex-equation-overlay--hidden');
     this.wrapper.appendChild(this.equationOverlay);
 
     const multilineEquations = document.createElement('input');
     multilineEquations.type = 'checkbox';
-    multilineEquations.id = 'multiline-equations';
+    multilineEquations.id = 'latex-multiline-equations';
 
     multilineEquations.checked = this.state.multilineEquations;
     multilineEquations.onchange = (e) => {
@@ -75,7 +75,7 @@ fill="#000000" stroke="none">
     this.equationOverlay.appendChild(multilineEquations);
 
     const label = document.createElement('label');
-    label.setAttribute('for', 'multiline-equations');
+    label.setAttribute('for', 'latex-multiline-equations');
     label.innerText = 'Multi line equations';
     this.equationOverlay.appendChild(label);
 
@@ -90,20 +90,24 @@ fill="#000000" stroke="none">
     return this.wrapper;
   }
 
+  stopEventPropagation(event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   toggleEquationOverlay(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    this.equationOverlay.classList.toggle('equation-overlay--hidden');
+    this.stopEventPropagation(e);
+    this.equationOverlay.classList.toggle('latex-equation-overlay--hidden');
   }
 
   createEquationWrapper(equation) {
     const eqWrapper = document.createElement('div');
-    eqWrapper.classList.add('equation-wrapper-latex-tool');
+    eqWrapper.classList.add('latex-equation-wrapper-latex-tool');
 
     const textarea = document.createElement('textarea');
     textarea.placeholder = 'Write LaTeX code here...';
     textarea.value = equation;
-    textarea.classList.add('equation-textarea-latex-tool');
+    textarea.classList.add('latex-equation-textarea-latex-tool');
     textarea.oninput = (event) => {
       this.state.equations = event.target.value.trim().split('\n');
       this.renderLatex();
@@ -115,17 +119,17 @@ fill="#000000" stroke="none">
     };
 
     const buttonsWrapper = document.createElement('div');
-    buttonsWrapper.classList.add('button-wrapper');
+    buttonsWrapper.classList.add('latex-button-wrapper');
     const doneButton = document.createElement('button');
     doneButton.innerText = 'Done ↵';
-    doneButton.classList.add('done-button');
+    doneButton.classList.add('latex-done-button', 'latex-done-button-color');
     doneButton.onclick = this.saveEquationState;
 
     buttonsWrapper.appendChild(doneButton);
 
     eqWrapper.appendChild(textarea);
     eqWrapper.appendChild(buttonsWrapper);
-
+    textarea.focus();
     return eqWrapper;
   }
 
