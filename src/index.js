@@ -39,75 +39,96 @@ fill="#000000" stroke="none">
     };
   }
 
-  constructor({ data }) {
+  constructor({ data, config }) {
     this.data = data || {};
+    this.config = config || {};
     this.data.equations = this.data.equations || [''];
     this.data.multilineEquations = this.data.multilineEquations ?? false;
     this.state = { ...this.data };
     this.wrapper = undefined;
     this.toggleEquationOverlay = this.toggleEquationOverlay.bind(this);
     this.saveEquationState = this.saveEquationState.bind(this);
+    this.repositionEquationArea = this.repositionEquationArea.bind(this);
+    this.createEquationArea = this.createEquationArea.bind(this);
+    this.createEquationOverlay = this.createEquationOverlay.bind(this);
   }
 
   render() {
     this.wrapper = document.createElement('div');
-    this.wrapper.classList.add('latex-wrapper');
+    this.wrapper.classList.add('latex-tool-wrapper');
 
     this.output = document.createElement('div');
     this.output.id = 'output-latex-tool';
     this.wrapper.appendChild(this.output);
     this.output.onclick = this.saveEquationState;
 
-    this.equationOverlay = document.createElement('div');
-    this.equationOverlay.classList.add('latex-equation-overlay', 'latex-equation-overlay--hidden');
-    this.wrapper.appendChild(this.equationOverlay);
-
-    const multilineEquations = document.createElement('input');
-    multilineEquations.type = 'checkbox';
-    multilineEquations.id = 'latex-multiline-equations';
-
-    multilineEquations.checked = this.state.multilineEquations;
-    multilineEquations.onchange = (e) => {
-      this.state.multilineEquations = e.target.checked;
-      this.renderLatex();
-    };
-
-    this.equationOverlay.appendChild(multilineEquations);
-
-    const label = document.createElement('label');
-    label.setAttribute('for', 'latex-multiline-equations');
-    label.innerText = 'Multi line equations';
-    this.equationOverlay.appendChild(label);
-
-    this.equationContainer = document.createElement('div');
-    this.equationOverlay.appendChild(this.equationContainer);
-
-    const eqWrapper = this.createEquationWrapper(this.state.equations.join('\n'));
-    this.equationContainer.appendChild(eqWrapper);
-
     this.renderLatex();
 
     return this.wrapper;
   }
 
+  createEquationOverlay() {
+    this.equationOverlay = document.createElement('div');
+    this.equationOverlay.classList.add('latex-tool-equation-overlay');
+
+    const multilineEquationsInput = document.createElement('input');
+    multilineEquationsInput.type = 'checkbox';
+    multilineEquationsInput.id = 'latex-tool-multiline-equations';
+
+    multilineEquationsInput.checked = this.state.multilineEquations;
+    multilineEquationsInput.onchange = (e) => {
+      this.state.multilineEquations = e.target.checked;
+      this.renderLatex();
+    };
+
+    this.equationOverlay.appendChild(multilineEquationsInput);
+
+    const label = document.createElement('label');
+    label.setAttribute('for', 'latex-tool-multiline-equations');
+    label.innerText = 'Multi line equations';
+    this.equationOverlay.appendChild(label);
+
+    const equationContainer = document.createElement('div');
+
+    this.equationOverlay.appendChild(equationContainer);
+
+    const eqWrapper = this.createEquationArea(this.state.equations.join('\n'));
+    equationContainer.appendChild(eqWrapper);
+    this.disconnectObserver = this.observeEquationOverlayResize(this.equationOverlay);
+    this.wrapper.appendChild(this.equationOverlay);
+  }
+
   stopEventPropagation(event) {
-    event.preventDefault();
     event.stopPropagation();
   }
 
   toggleEquationOverlay(e) {
     this.stopEventPropagation(e);
-    this.equationOverlay.classList.toggle('latex-equation-overlay--hidden');
+    if (!this.equationOverlay) {
+      this.createEquationOverlay();
+      this.repositionEquationArea();
+      this.equationOverlay.addEventListener('click', this.stopEventPropagation);
+      document.body.addEventListener('click', this.toggleEquationOverlay);
+    } else {
+      document.body.removeEventListener('click', this.toggleEquationOverlay);
+      this.equationOverlay.removeEventListener('click', this.stopEventPropagation);
+      this.disconnectObserver();
+      this.equationOverlay.remove();
+      this.equationOverlay = undefined;
+    }
   }
 
-  createEquationWrapper(equation) {
-    const eqWrapper = document.createElement('div');
-    eqWrapper.classList.add('latex-equation-wrapper-latex-tool');
+  createEquationArea(equation) {
+    const equationArea = document.createElement('div');
+    equationArea.classList.add('latex-tool-equation-area');
 
+    this.textAreaWrapper = document.createElement('div');
+    this.textAreaWrapper.classList.add('latex-tool-equation-textarea-wrapper');
     const textarea = document.createElement('textarea');
+    textarea.id = 'latex-tool-equation-textarea';
     textarea.placeholder = 'Write LaTeX code here...';
     textarea.value = equation;
-    textarea.classList.add('latex-equation-textarea-latex-tool');
+    textarea.classList.add('latex-tool-equation-textarea');
     textarea.oninput = (event) => {
       this.state.equations = event.target.value.trim().split('\n');
       this.renderLatex();
@@ -119,18 +140,18 @@ fill="#000000" stroke="none">
     };
 
     const buttonsWrapper = document.createElement('div');
-    buttonsWrapper.classList.add('latex-button-wrapper');
+    buttonsWrapper.classList.add('latex-tool-button-wrapper');
     const doneButton = document.createElement('button');
     doneButton.innerText = 'Done ↵';
-    doneButton.classList.add('latex-done-button', 'latex-done-button-color');
+    doneButton.classList.add('latex-tool-done-button', 'latex-tool-done-button-color');
     doneButton.onclick = this.saveEquationState;
 
     buttonsWrapper.appendChild(doneButton);
-
-    eqWrapper.appendChild(textarea);
-    eqWrapper.appendChild(buttonsWrapper);
+    this.textAreaWrapper.appendChild(textarea);
+    equationArea.appendChild(this.textAreaWrapper);
+    equationArea.appendChild(buttonsWrapper);
     textarea.focus();
-    return eqWrapper;
+    return equationArea;
   }
 
   saveEquationState(e) {
@@ -161,6 +182,47 @@ fill="#000000" stroke="none">
     } catch (error) {
       this.output.textContent = error.message;
     }
+  }
+
+  repositionEquationArea() {
+    const targetRect = this.wrapper.getBoundingClientRect();
+    const overlayRect = this.equationOverlay.getBoundingClientRect();
+    const overlayHeight = Math.max(overlayRect.height, 200);
+    const spacing = 10;
+
+    const headerFooterHeight = this.config.bufferHeight ?? 0;
+    // Calculate available space
+    const spaceAbove = targetRect.top;
+    const spaceBelow = window.innerHeight - targetRect.bottom;
+
+    // Decide position and height
+    let top;
+    let maxHeight;
+    if (spaceBelow >= overlayHeight || spaceBelow >= spaceAbove) {
+      // Position below
+      top = targetRect.height + spacing;
+      maxHeight = spaceBelow - spacing - headerFooterHeight;
+    } else {
+      // Position above
+      top = -overlayHeight - spacing;
+      maxHeight = spaceAbove - spacing - headerFooterHeight;
+    }
+
+    const textAreaWrapperRect = this.textAreaWrapper.getBoundingClientRect();
+
+    this.equationOverlay.style.top = `${top}px`;
+    this.equationOverlay.style.maxHeight = `${maxHeight}px`;
+    this.textAreaWrapper.style.maxHeight = `${maxHeight * (textAreaWrapperRect.height / overlayHeight)}px`; // Adjust textarea height
+  }
+
+  observeEquationOverlayResize(element) {
+    const resizeObserver = new ResizeObserver(() => {
+      this.repositionEquationArea();
+    });
+    resizeObserver.observe(element);
+    return () => {
+      resizeObserver.disconnect();
+    };
   }
 
   save(blockContent) {
