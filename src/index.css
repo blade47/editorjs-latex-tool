@@ -1,8 +1,6 @@
 .latex-tool-equation-area {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 10px;
-  margin-top: 10px;
   box-sizing: border-box;
 }
 
@@ -17,7 +15,7 @@
   width: 100%;
   height: fit-content;
   background-color: inherit;
-  font-size: 16px;
+  font-size: 12px;
   border: none;
   resize: none;
   color: #dd4a68;
@@ -46,6 +44,7 @@
   position: absolute;
   left: 0;
   width: 100%;
+  min-height: 120px;
   padding: 10px;
   background-color: #f7f7f5;
   z-index: 1;
@@ -59,8 +58,8 @@
 }
 
 .latex-tool-done-button {
-  padding: 10px 15px;
-  font-size: 14px;
+  padding: 10px;
+  font-size: 12px;
   border: none;
   border-radius: 6px;
   font-weight: 700;
@@ -76,4 +75,14 @@
 .latex-tool-done-button-color {
   background-color: #28a745;
   color: white;
+}
+
+.latex-tool-equation-overlay label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.latex-tool-multiline-container {
+  display: flex;
+  align-items: center;
 }

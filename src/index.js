@@ -71,6 +71,8 @@ fill="#000000" stroke="none">
     this.equationOverlay = document.createElement('div');
     this.equationOverlay.classList.add('latex-tool-equation-overlay');
 
+    const multilineContainer = document.createElement('div');
+    multilineContainer.classList.add('latex-tool-multiline-container');
     const multilineEquationsInput = document.createElement('input');
     multilineEquationsInput.type = 'checkbox';
     multilineEquationsInput.id = 'latex-tool-multiline-equations';
@@ -81,19 +83,16 @@ fill="#000000" stroke="none">
       this.renderLatex();
     };
 
-    this.equationOverlay.appendChild(multilineEquationsInput);
+    multilineContainer.appendChild(multilineEquationsInput);
 
     const label = document.createElement('label');
     label.setAttribute('for', 'latex-tool-multiline-equations');
     label.innerText = 'Multi line equations';
-    this.equationOverlay.appendChild(label);
-
-    const equationContainer = document.createElement('div');
-
-    this.equationOverlay.appendChild(equationContainer);
+    multilineContainer.appendChild(label);
+    this.equationOverlay.appendChild(multilineContainer);
 
     const eqWrapper = this.createEquationArea(this.state.equations.join('\n'));
-    equationContainer.appendChild(eqWrapper);
+    this.equationOverlay.appendChild(eqWrapper);
     this.disconnectObserver = this.observeEquationOverlayResize(this.equationOverlay);
     this.wrapper.appendChild(this.equationOverlay);
   }
@@ -185,12 +184,23 @@ fill="#000000" stroke="none">
   }
 
   repositionEquationArea() {
-    const targetRect = this.wrapper.getBoundingClientRect();
     const overlayRect = this.equationOverlay.getBoundingClientRect();
-    const overlayHeight = Math.max(overlayRect.height, 200);
+    const overlayHeight = overlayRect.height;
+
+    const maxHeight =
+      this.config.repositionOverlay?.(this.wrapper, this.equationOverlay) ??
+      this.repositionOverlay(this.wrapper, this.equationOverlay, this.config.bufferSpacing ?? 0);
+
+    const textAreaWrapperRect = this.textAreaWrapper.getBoundingClientRect();
+    this.textAreaWrapper.style.maxHeight = `${maxHeight * (textAreaWrapperRect.height / overlayHeight)}px`; // Adjust textarea height
+  }
+
+  repositionOverlay(target, overlay, bufferSpacing) {
+    const overlayRect = overlay.getBoundingClientRect();
+    const overlayHeight = overlayRect.height;
+    const targetRect = target.getBoundingClientRect();
     const spacing = 10;
 
-    const headerFooterHeight = this.config.bufferHeight ?? 0;
     // Calculate available space
     const spaceAbove = targetRect.top;
     const spaceBelow = window.innerHeight - targetRect.bottom;
@@ -201,18 +211,16 @@ fill="#000000" stroke="none">
     if (spaceBelow >= overlayHeight || spaceBelow >= spaceAbove) {
       // Position below
       top = targetRect.height + spacing;
-      maxHeight = spaceBelow - spacing - headerFooterHeight;
+      maxHeight = spaceBelow - spacing - bufferSpacing;
     } else {
       // Position above
-      top = -overlayHeight - spacing;
-      maxHeight = spaceAbove - spacing - headerFooterHeight;
+      maxHeight = spaceAbove - spacing - bufferSpacing;
+      top = -Math.min(overlayHeight, maxHeight) - spacing;
     }
 
-    const textAreaWrapperRect = this.textAreaWrapper.getBoundingClientRect();
-
-    this.equationOverlay.style.top = `${top}px`;
-    this.equationOverlay.style.maxHeight = `${maxHeight}px`;
-    this.textAreaWrapper.style.maxHeight = `${maxHeight * (textAreaWrapperRect.height / overlayHeight)}px`; // Adjust textarea height
+    overlay.style.top = `${top}px`;
+    overlay.style.maxHeight = `${maxHeight}px`;
+    return maxHeight;
   }
 
   observeEquationOverlayResize(element) {
