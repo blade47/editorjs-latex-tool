@@ -47,7 +47,7 @@
   min-height: 120px;
   padding: 10px;
   background-color: #f7f7f5;
-  z-index: 1;
+  z-index: 9999;
   word-break: break-word;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -68,13 +68,19 @@
   white-space: nowrap;
 }
 
-.latex-tool-done-button:hover {
+.latex-tool-done-button:hover:not(:disabled) {
   background-color: #218838;
 }
 
 .latex-tool-done-button-color {
   background-color: #28a745;
   color: white;
+}
+
+.latex-tool-done-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #6c757d;
 }
 
 .latex-tool-equation-overlay label {

@@ -3,6 +3,7 @@ import 'katex/dist/katex.min.css';
 import { IconCurlyBrackets } from '@codexteam/icons';
 
 import './index.css';
+import { validateLaTeX } from './latexValidator';
 import { KATEX_DISPLAY_OPTIONS } from './katexMacros';
 
 class LatexTool {
@@ -104,32 +105,77 @@ class LatexTool {
     textarea.placeholder = 'Write LaTeX code here...';
     textarea.value = equation;
     textarea.classList.add('latex-tool-equation-textarea');
-    textarea.oninput = (event) => {
-      this.state.equations = event.target.value.trim().split('\n');
-      // Render immediately for instant visual feedback
-      this.renderLatex();
-    };
-    textarea.onkeydown = (event) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        this.saveEquationState(event);
-      }
-    };
 
     const buttonsWrapper = document.createElement('div');
     buttonsWrapper.classList.add('latex-tool-button-wrapper');
     const doneButton = document.createElement('button');
     doneButton.innerText = 'Done ↵';
     doneButton.classList.add('latex-tool-done-button', 'latex-tool-done-button-color');
-    doneButton.onclick = this.saveEquationState;
+
+    // Validate on input and enable/disable button
+    const validateAndUpdateButton = () => {
+      const text = textarea.value.trim();
+      const validationResult = validateLaTeX(text);
+
+      if (!validationResult.isValid && validationResult.errors.length > 0) {
+        // Disable button and show errors
+        doneButton.disabled = true;
+        doneButton.style.opacity = '0.5';
+        doneButton.style.cursor = 'not-allowed';
+
+        // Show error notifications
+        validationResult.errors.forEach((error) => {
+          this.api.notifier.show({
+            message: `LaTeX Error: ${error}`,
+            style: 'error',
+            time: 5000,
+          });
+        });
+      } else {
+        // Enable button
+        doneButton.disabled = false;
+        doneButton.style.opacity = '1';
+        doneButton.style.cursor = 'pointer';
+      }
+    };
+
+    textarea.oninput = (event) => {
+      this.state.equations = event.target.value.trim().split('\n');
+      // Render immediately for instant visual feedback
+      this.renderLatex();
+      // Validate and update button state
+      validateAndUpdateButton();
+    };
+
+    textarea.onkeydown = (event) => {
+      if (event.key === 'Enter' && !event.shiftKey && !doneButton.disabled) {
+        this.saveEquationState(event);
+      }
+    };
+
+    doneButton.onclick = (e) => {
+      if (!doneButton.disabled) {
+        this.saveEquationState(e);
+      }
+    };
 
     buttonsWrapper.appendChild(doneButton);
     this.textAreaWrapper.appendChild(textarea);
     equationArea.appendChild(this.textAreaWrapper);
     equationArea.appendChild(buttonsWrapper);
     textarea.focus();
+
+    // Initial validation
+    validateAndUpdateButton();
+
     return equationArea;
   }
 
+  /**
+   * Saves equation state
+   *
+   * Note: Validation is handled by button state, so this only runs when valid
+   */
   saveEquationState(e) {
     this.toggleEquationOverlay(e);
     this.data = { ...this.state };
@@ -200,50 +246,21 @@ class LatexTool {
   }
 
   repositionEquationArea() {
-    const overlayRect = this.equationOverlay.getBoundingClientRect();
-    const overlayHeight = overlayRect.height;
-
-    const maxHeight =
-      this.config.repositionOverlay?.(this.wrapper, this.equationOverlay) ??
-      this.repositionOverlay(this.wrapper, this.equationOverlay, this.config.bufferSpacing ?? 0);
-
-    const textAreaWrapperRect = this.textAreaWrapper.getBoundingClientRect();
-    this.textAreaWrapper.style.maxHeight = `${maxHeight * (textAreaWrapperRect.height / overlayHeight)}px`; // Adjust textarea height
-  }
-
-  repositionOverlay(target, overlay, bufferSpacing) {
-    const overlayRect = overlay.getBoundingClientRect();
-    const overlayHeight = overlayRect.height;
-    const targetRect = target.getBoundingClientRect();
     const spacing = 10;
 
-    // Calculate available space
-    const spaceAbove = targetRect.top;
-    const spaceBelow = window.innerHeight - targetRect.bottom;
-
-    // Decide position and height
-    let top;
-    let maxHeight;
-    if (spaceBelow >= overlayHeight || spaceBelow >= spaceAbove) {
-      // Position below
-      top = targetRect.height + spacing;
-      maxHeight = spaceBelow - spacing - bufferSpacing;
-    } else {
-      // Position above
-      maxHeight = spaceAbove - spacing - bufferSpacing;
-      top = -Math.min(overlayHeight, maxHeight) - spacing;
-    }
-
-    overlay.style.top = `${top}px`;
-    overlay.style.maxHeight = `${maxHeight}px`;
-    return maxHeight;
+    // Anchor popup to bottom of preview like a tooltip
+    this.equationOverlay.style.top = `${this.output.offsetHeight + spacing}px`;
   }
 
   observeEquationOverlayResize(element) {
     const resizeObserver = new ResizeObserver(() => {
       this.repositionEquationArea();
     });
+
+    // Watch both the overlay AND the preview
     resizeObserver.observe(element);
+    resizeObserver.observe(this.output);
+
     return () => {
       resizeObserver.disconnect();
     };
